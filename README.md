@@ -2,17 +2,17 @@
 
 Turn a USB-only printer into a wireless network printer using an ESP32-S3 dev board.
 
-> 用一塊 ESP32-S3 開發板，讓只有 USB 的印表機變成 WiFi 無線印表機。
+> Use an ESP32-S3 dev board to turn a USB-only printer into a WiFi network printer.
 
 <p align="center">
-  <img src="images/setup.jpg" width="600" alt="ESP32-S3 connected to Brother HL-1110">
+  <img src="images/setup.jpg" width="600" alt="ESP32-S3 connected to Brother HL-2030">
 </p>
 
 <p align="center">
   <img src="images/hello_world.jpg" width="400" alt="Hello World test print">
 </p>
 
-<p align="center"><i>ESP32-S3 + Brother HL-1110 = WiFi Printer. Hello, World!</i></p>
+<p align="center"><i>ESP32-S3 + Brother HL-2030 = WiFi Printer. Hello, World!</i></p>
 
 ## What It Does
 
@@ -22,14 +22,14 @@ This project turns an **ESP32-S3** into a transparent WiFi-to-USB print bridge. 
 [Computer] ~~~WiFi~~~ [ESP32-S3] ---USB--- [Printer]
 ```
 
-Originally built for the **Brother HL-1110**, but should work with any USB printer that supports standard USB Printer Class (most do).
+Originally built for the **Brother HL-2030**, but should work with any USB printer that supports standard USB Printer Class (most do).
 
 ## Features
 
 - **Raw Socket (Port 9100)** — JetDirect/AppSocket protocol, works natively with macOS, Windows, and Linux
 - **Web Management UI** — Dark-themed dashboard to monitor printer status, configure WiFi, and restart the device
 - **Auto WiFi Setup** — Boots into AP mode on first run; connect and configure via browser
-- **mDNS Discovery** — Access via `hl1110.local` instead of memorizing IP addresses
+- **mDNS Discovery** — Access via `hl2030.local` instead of memorizing IP addresses
 - **OTA Updates** — Update firmware wirelessly from Arduino IDE
 - **PSRAM Buffer** — 512KB print buffer in PSRAM handles large print jobs
 - **Auto Reconnect** — Automatically reconnects to WiFi if connection drops
@@ -99,7 +99,7 @@ Download [Arduino IDE 2.x](https://www.arduino.cc/en/software) and install the E
    ```
    [USB] VID: 0x04F9, PID: 0x002D
    [USB] Manufacturer: Brother
-   [USB] Product: HL-1110 series
+   [USB] Product: HL-2030 series
    [USB] ✓ Printer ready
    ```
 
@@ -121,10 +121,10 @@ Download [Arduino IDE 2.x](https://www.arduino.cc/en/software) and install the E
 | Field | Value |
 |-------|-------|
 | Protocol | HP Jetdirect - Socket |
-| Address | `hl1110.local` or the ESP32's IP address |
+| Address | `hl2030.local` or the ESP32's IP address |
 | Queue | (leave empty) |
-| Name | Brother HL-1110 WiFi |
-| Use | Select Brother HL-1110 driver |
+| Name | Brother HL-2030 WiFi |
+| Use | Select Brother HL-2030 driver |
 
 5. Click **Add** — done!
 
@@ -141,7 +141,7 @@ Download [Arduino IDE 2.x](https://www.arduino.cc/en/software) and install the E
 
 ## Web Management UI
 
-Access the dashboard at `http://hl1110.local` (or the ESP32's IP address):
+Access the dashboard at `http://hl2030.local` (or the ESP32's IP address):
 
 - **Printer Status** — Connected/Disconnected, model info, active print job progress
 - **WiFi Config** — Scan and connect to networks, signal strength
@@ -158,28 +158,28 @@ ESP32S3_PrintServer/
 ├── wifi_manager.h / .cpp     # WiFi STA/AP management with NVS persistence
 ├── print_server.h / .cpp     # Raw Socket server (port 9100)
 ├── web_ui.h / .cpp           # Web dashboard (HTML/CSS/JS embedded)
-└── GUIDE.md                  # Detailed setup guide (Chinese)
+└── GUIDE.md                  # Detailed setup guide
 ```
 
 ## Architecture
 
 ```
-┌─────────────┐        WiFi         ┌──────────────────┐
-│  Computer   │ ◄──────────────────► │    ESP32-S3      │
-│             │  Raw Socket :9100   │                  │
-│  Printer    │                     │ ┌──────────────┐ │    USB     ┌────────────┐
-│  Driver     │ ── print data ────► │ │ Print Server │ │ ────────► │  Printer   │
-│             │                     │ └──────────────┘ │ USB Host  │            │
-│  Browser    │ ◄──── HTTP ───────► │ ┌──────────────┐ │           └────────────┘
-│             │  Dashboard :80      │ │   Web UI     │ │
-└─────────────┘                     │ └──────────────┘ │
-                                    │ ┌──────────────┐ │
-                                    │ │ WiFi Manager │ │
-                                    │ └──────────────┘ │
-                                    │ ┌──────────────┐ │
-                                    │ │  mDNS + OTA  │ │
-                                    │ └──────────────┘ │
-                                    └──────────────────┘
+┌─────────────┐        WiFi          ┌──────────────────┐
+│  Computer   │ ◄─────────────────►  │    ESP32-S3      │
+│             │  Raw Socket :9100    │                  │
+│  Printer    │                      │ ┌──────────────┐ │    USB    ┌────────────┐
+│  Driver     │ ── print data ────►  │ │ Print Server │ │ ────────► │  Printer   │
+│             │                      │ └──────────────┘ │ USB Host  │            │
+│  Browser    │ ◄──── HTTP ───────►  │ ┌──────────────┐ │           └────────────┘
+│             │  Dashboard :80       │ │   Web UI     │ │
+└─────────────┘                      │ └──────────────┘ │
+                                     │ ┌──────────────┐ │
+                                     │ │ WiFi Manager │ │
+                                     │ └──────────────┘ │
+                                     │ ┌──────────────┐ │
+                                     │ │  mDNS + OTA  │ │
+                                     │ └──────────────┘ │
+                                     └──────────────────┘
 ```
 
 ## Troubleshooting
@@ -203,7 +203,7 @@ ESP32S3_PrintServer/
 
 **Prints garbled text or blank pages:**
 - Use **HP Jetdirect - Socket** protocol (not IPP or LPD)
-- Select the correct printer driver (e.g., Brother HL-1110, not Generic PostScript)
+- Select the correct printer driver (e.g., Brother HL-2030, not Generic PostScript)
 
 ## Adapting for Other Printers
 
@@ -221,13 +221,14 @@ Edit `config.h` to customize:
 |----------|---------|-------------|
 | `AP_SSID` | `PrintServer-Setup` | AP mode network name |
 | `AP_PASSWORD` | `12345678` | AP mode password |
-| `MDNS_HOSTNAME` | `hl1110` | mDNS hostname (access via `<name>.local`) |
+| `MDNS_HOSTNAME` | `hl2030` | mDNS hostname (access via `<name>.local`) |
 | `RAW_SOCKET_PORT` | `9100` | Print server port |
 | `PRINT_BUFFER_SIZE` | `512 * 1024` | Print buffer size (in PSRAM) |
-| `LED_PIN` | `2` | Status LED GPIO pin |
+| `LED_PIN` | `38` | Status LED GPIO pin |
 | `OTA_PASSWORD` | `""` | OTA update password (empty = no password) |
 | `WDT_TIMEOUT_SEC` | `30` | Watchdog timeout in seconds |
 
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
+Adapted for platformio and translated from https://github.com/MAXXTANG/ESP32S3_PrintServer

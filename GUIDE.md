@@ -1,199 +1,199 @@
-# ESP32-S3 WiFi Print Server — 完整指南
+# ESP32-S3 WiFi Print Server — Complete Guide
 
-> 讓 Brother HL-1110 透過 WiFi 從 Mac 列印
+> Turn a USB-only printer into a WiFi network printer using an ESP32-S3 dev board.
 
 ---
 
-## 硬體需求
+## Hardware Requirements
 
-| 項目 | 規格 | 備註 |
-|------|------|------|
-| 開發板 | ESP32-S3-N16R8 (雙 Type-C) | 你已有 |
-| 印表機 | Brother HL-1110 | USB 連接 |
-| USB OTG 轉接線 | Type-C 公 → USB-A 母 | **關鍵零件** |
-| USB 線 | USB-A 公 → USB-B 公 | 印表機原裝線 |
-| 電源 | 5V USB 充電器 + Type-C 線 | 供電給 ESP32 |
+| Item | Specification | Notes |
+|------|---------------|-------|
+| Dev board | ESP32-S3-WROOM-1-N8R8 (dual Type-C) | You have this |
+| Printer | Brother HL-2030 | USB connection |
+| USB OTG adapter | Type-C male → USB-A female | **Key component** |
+| USB cable | USB-A male → USB-B male | Printer's original cable |
+| Power supply | 5V USB charger + Type-C cable | Powers the ESP32 |
 
-### 接線方式
+### Wiring
 
 ```
-[Mac] ~~~WiFi~~~ [ESP32-S3] ---USB OTG--- [Brother HL-1110]
+[Mac] ~~~WiFi~~~ [ESP32-S3] ---USB OTG--- [Brother HL-2030]
                      |
-              (另一個 Type-C 供電/燒錄)
+              (other Type-C for power/programming)
 ```
 
-**ESP32-S3 雙 Type-C 接口：**
-- **USB 接口（標示 USB）：** 接 OTG 轉接線 → 接印表機（USB Host 模式）
-- **UART 接口（標示 COM/UART）：** 接電腦燒錄，之後當供電用
+**ESP32-S3 dual Type-C ports:**
+- **USB port (labeled USB):** Connect OTG adapter → connect printer (USB Host mode)
+- **UART port (labeled COM/UART):** Connect to computer for flashing, then use for power
 
-> ⚠️ **重要：** USB OTG 轉接線一定要是「Type-C 公 → USB-A 母」的 OTG 線，不是普通充電線！可搜尋「USB-C OTG 轉接頭」購買，約 NT$50-100。
+> ⚠️ **Important:** The USB OTG adapter must be a "Type-C male → USB-A female" OTG cable, not a regular charging cable. Search for "USB-C OTG adapter" — costs about $2-3.
 
 ---
 
-## 軟體安裝
+## Software Setup
 
-### Step 1：安裝 Arduino IDE
+### Step 1: Install Arduino IDE
 
-1. 下載安裝 [Arduino IDE 2.x](https://www.arduino.cc/en/software)
-2. 開啟 Arduino IDE
+1. Download and install [Arduino IDE 2.x](https://www.arduino.cc/en/software)
+2. Open Arduino IDE
 
-### Step 2：安裝 ESP32 開發板支援
+### Step 2: Install ESP32 Board Support
 
 1. **File → Preferences**
-2. 在 **Additional Board Manager URLs** 加入：
+2. In **Additional Board Manager URLs** add:
    ```
    https://espressif.github.io/arduino-esp32/package_esp32_index.json
    ```
 3. **Tools → Board → Board Manager**
-4. 搜尋 `esp32`，安裝 **esp32 by Espressif Systems**（選最新版）
+4. Search `esp32`, install **esp32 by Espressif Systems** (latest version)
 
-### Step 3：設定開發板
+### Step 3: Configure Board
 
-在 **Tools** 選單中設定：
+Set in the **Tools** menu:
 
-| 設定項 | 選擇 |
-|--------|------|
+| Setting | Value |
+|---------|-------|
 | Board | ESP32S3 Dev Module |
 | USB CDC On Boot | Disabled |
 | USB Mode | USB-OTG (TinyUSB) |
 | PSRAM | OPI PSRAM |
-| Flash Size | 16MB |
-| Partition Scheme | 16M Flash (3MB APP/9.9MB FATFS) |
+| Flash Size | 8MB |
+| Partition Scheme | Huge App (3MB APP/1.6MB FATFS) |
 | Upload Mode | UART0 / Hardware CDC |
-| Port | 選擇你的 COM port |
+| Port | Select your COM port |
 
-> ⚠️ **USB Mode 一定要選 USB-OTG (TinyUSB)**，這樣 USB 接口才能當 Host 用。
+> ⚠️ **USB Mode must be USB-OTG (TinyUSB)** so the USB port works as Host.
 
-### Step 4：開啟專案
+### Step 4: Open Project
 
-1. 用 Arduino IDE 開啟 `ESP32S3_PrintServer.ino`
-2. 同資料夾的 `.h` 和 `.cpp` 檔會自動載入
-3. 確認所有分頁都有出現（config.h, usb_printer.h/cpp, wifi_manager.h/cpp, print_server.h/cpp, web_ui.h/cpp）
+1. Open `ESP32S3_PrintServer.ino` with Arduino IDE
+2. The `.h` and `.cpp` files in the same folder will load automatically
+3. Confirm all tabs appear (config.h, usb_printer.h/cpp, wifi_manager.h/cpp, print_server.h/cpp, web_ui.h/cpp)
 
-### Step 5：燒錄
+### Step 5: Flash
 
-1. 用 Type-C 線連接 ESP32 的 **UART 接口**到電腦
-2. 按下 **Upload**（→ 按鈕）
-3. 如果燒錄失敗，按住板子上的 **BOOT** 鍵，同時按 **RST** 鍵，然後放開 RST，等幾秒再放開 BOOT
+1. Connect ESP32's **UART port** to computer with Type-C cable
+2. Press **Upload** (→ button)
+3. If flashing fails, hold the board's **BOOT** button, press **RST**, then release RST, wait a few seconds, release BOOT
 
 ---
 
-## 首次設定
+## First-Time Setup
 
-### Step 1：連接印表機
+### Step 1: Connect Printer
 
-1. 燒錄完成後，用 OTG 轉接線把印表機接到 ESP32 的 **USB 接口**
-2. 另一個 Type-C 接口接 5V 電源（或繼續接電腦）
-3. 開啟 Arduino IDE 的 Serial Monitor（115200 baud）
-4. 你應該會看到類似：
+1. After flashing, connect the printer to ESP32's **USB port** via OTG adapter
+2. Connect the other Type-C port to 5V power (or keep connected to computer)
+3. Open Arduino IDE Serial Monitor (115200 baud)
+4. You should see something like:
    ```
-   [USB] 偵測到新裝置，位址: 1
+   [USB] New device detected at address: 1
    [USB] VID: 0x04F9, PID: 0x002D
-   [USB] 製造商: Brother
-   [USB] 產品: HL-1110 series
-   [USB] ✓ 印表機已就緒
+   [USB] Manufacturer: Brother
+   [USB] Product: HL-2030 series
+   [USB] ✓ Printer ready
    ```
 
-### Step 2：設定 WiFi
+### Step 2: Configure WiFi
 
-1. 用手機或電腦搜尋 WiFi，找到 **PrintServer-Setup**
-2. 密碼：**12345678**
-3. 連線後瀏覽器開啟 **http://192.168.4.1**
-4. 在管理介面：
-   - 點 **Scan** 掃描可用的 WiFi
-   - 選擇你家的 WiFi
-   - 輸入密碼
-   - 點 **Connect**
-5. 連線成功後，頁面會顯示新的 IP 位址
+1. Search for WiFi on your phone or computer, find **PrintServer-Setup**
+2. Password: **12345678**
+3. After connecting, open **http://192.168.4.1** in your browser
+4. In the management UI:
+   - Click **Scan** to scan available WiFi networks
+   - Select your home WiFi
+   - Enter password
+   - Click **Connect**
+5. After successful connection, the page will show the new IP address
 
-### Step 3：Mac 端設定
+### Step 3: Mac Setup
 
-1. 先確認 Mac 有安裝 Brother HL-1110 驅動
-   - 下載：[Brother 官網驅動頁面](https://support.brother.com/g/b/downloadtop.aspx?c=us_ot&lang=en&prod=hl1110_us_eu_as)
-   - 或者 macOS 可能已內建
+1. First confirm Mac has Brother HL-2030 driver installed
+   - Download: [Brother official driver page](https://support.brother.com/g/b/downloadtop.aspx?c=us_ot&lang=en&prod=hl2030_us_eu_as)
+   - Or macOS may already include it
 
-2. 開啟 **系統設定 → 印表機與掃描器**
+2. Open **System Settings → Printers & Scanners**
 
-3. 點 **加入印表機**（+ 按鈕）
+3. Click **Add Printer** (+ button)
 
-4. 選擇 **IP** 分頁
+4. Select the **IP** tab
 
-5. 填寫：
-   | 欄位 | 填入 |
-   |------|------|
-   | 協定 | HP Jetdirect - Socket |
-   | 位址 | `hl1110.local` 或 ESP32 的 IP |
-   | 佇列 | 留空 |
-   | 名稱 | Brother HL-1110 WiFi |
-   | 使用 | 選擇 Brother HL-1110 驅動 |
+5. Fill in:
+   | Field | Value |
+   |-------|-------|
+   | Protocol | HP Jetdirect - Socket |
+   | Address | `hl2030.local` or ESP32's IP |
+   | Queue | Leave empty |
+   | Name | Brother HL-2030 WiFi |
+   | Use | Select Brother HL-2030 driver |
 
-6. 點 **加入**
+6. Click **Add**
 
-7. 完成！現在你可以從任何 App 選擇這台印表機列印了。
-
----
-
-## 日常使用
-
-- **列印：** 就像一般網路印表機一樣，從 Mac 選擇印表機直接列印
-- **管理介面：** 瀏覽器開啟 `http://hl1110.local` 查看狀態
-- **印表機沒回應：** 管理介面點 Restart，或拔插 ESP32 電源
-- **OTA 更新：** Arduino IDE 選擇 Port 時會看到 `printserver`（網路），可以無線更新韌體
+7. Done! Now you can print from any app by selecting this printer.
 
 ---
 
-## 疑難排解
+## Daily Use
 
-### 印表機偵測不到
-
-- 確認用的是 OTG 轉接線（不是普通充電線）
-- 確認接在 USB 接口（不是 UART 接口）
-- 試著拔插 USB 線
-- Serial Monitor 檢查有沒有 `[USB]` 相關訊息
-
-### WiFi 連不上
-
-- 確認 SSID 和密碼正確
-- ESP32 只支援 **2.4GHz WiFi**，5GHz 的不行
-- 如果完全連不上，按住 BOOT 鍵 10 秒可以重置 WiFi 設定（需要在程式中實作此功能）
-
-### Mac 找不到印表機
-
-- 確認 Mac 和 ESP32 在同一個 WiFi 網路
-- 用 IP 位址而非 `.local` 試試
-- 確認有安裝 Brother 驅動
-- 開啟 Terminal 測試連線：`nc -z <ESP32_IP> 9100`（應該會成功連線）
-
-### 列印出亂碼或空白頁
-
-- 確認 Mac 端選的驅動是 Brother HL-1110（不是 Generic PostScript）
-- 協定一定要選 **HP Jetdirect - Socket**，不要選 IPP 或 LPD
+- **Printing:** Like any network printer — select the printer from Mac to print directly
+- **Management UI:** Open `http://hl2030.local` in browser to check status
+- **Printer unresponsive:** Click Restart in the management UI, or unplug/replug ESP32 power
+- **OTA Update:** When selecting Port in Arduino IDE, you'll see `printserver` (network) — firmware can be updated wirelessly
 
 ---
 
-## 進階：修改設定
+## Troubleshooting
 
-編輯 `config.h` 可以調整：
+### Printer not detected
 
-- `AP_SSID` / `AP_PASSWORD`：AP 模式的名稱和密碼
-- `MDNS_HOSTNAME`：mDNS 名稱（預設 `hl1110`）
-- `RAW_SOCKET_PORT`：列印埠（預設 9100，通常不需要改）
-- `PRINT_BUFFER_SIZE`：列印緩衝區大小（預設 512KB）
-- `LED_PIN`：狀態 LED 的腳位
+- Confirm you're using an OTG adapter cable (not a regular charging cable)
+- Confirm it's plugged into the USB port (not the UART port)
+- Try unplugging and replugging the USB cable
+- Check Serial Monitor for `[USB]` messages
+
+### WiFi won't connect
+
+- Confirm SSID and password are correct
+- ESP32 only supports **2.4GHz WiFi**, not 5GHz
+- If completely stuck, holding BOOT for 10 seconds can reset WiFi settings (requires implementing this in firmware)
+
+### Mac can't find printer
+
+- Confirm Mac and ESP32 are on the same WiFi network
+- Try using IP address instead of `.local`
+- Confirm Brother driver is installed
+- Test connection from Terminal: `nc -z <ESP32_IP> 9100` (should connect successfully)
+
+### Prints garbled text or blank pages
+
+- Confirm the driver selected on Mac is Brother HL-2030 (not Generic PostScript)
+- Protocol must be **HP Jetdirect - Socket**, not IPP or LPD
 
 ---
 
-## 系統架構
+## Advanced: Modifying Settings
+
+Edit `config.h` to adjust:
+
+- `AP_SSID` / `AP_PASSWORD`: AP mode name and password
+- `MDNS_HOSTNAME`: mDNS name (default `hl2030`)
+- `RAW_SOCKET_PORT`: Print port (default 9100, usually no need to change)
+- `PRINT_BUFFER_SIZE`: Print buffer size (default 512KB)
+- `LED_PIN`: Status LED pin
+
+---
+
+## System Architecture
 
 ```
 ┌─────────────┐         WiFi          ┌──────────────────┐
 │    Mac      │ ◄───────────────────► │    ESP32-S3      │
 │             │   Raw Socket :9100    │                  │
-│ Brother     │                       │ ┌──────────────┐ │     USB      ┌────────────┐
-│ Driver      │ ─── 列印資料 ──────► │ │ Print Server │ │ ──────────► │ Brother    │
-│             │                       │ └──────────────┘ │  USB Host   │ HL-1110    │
-│ Safari      │ ◄───── HTTP ────────► │ ┌──────────────┐ │             └────────────┘
-│             │   管理介面 :80        │ │   Web UI     │ │
+│ Brother     │                       │ ┌──────────────┐ │     USB     ┌────────────┐
+│ Driver      │ ── print data ────►   │ │ Print Server │ │ ──────────► │ Brother    │
+│             │                       │ └──────────────┘ │ USB Host    │ HL-2030    │
+│ Safari      │ ◄──── HTTP ────────►  │ ┌──────────────┐ │             └────────────┘
+│             │   Management :80      │ │   Web UI     │ │
 └─────────────┘                       │ └──────────────┘ │
                                       │ ┌──────────────┐ │
                                       │ │ WiFi Manager │ │
@@ -206,15 +206,15 @@
 
 ---
 
-## 零件購買建議
+## Parts Purchase Suggestions
 
-1. **USB-C OTG 轉接頭**（Type-C 公 → USB-A 母）
-   - 蝦皮搜尋「USB-C OTG 轉接頭」，約 NT$50-100
-   - 確認支援 OTG / Host 模式
+1. **USB-C OTG Adapter** (Type-C male → USB-A female)
+   - Search "USB-C OTG adapter" online, about $2-3
+   - Confirm it supports OTG / Host mode
 
-2. **5V USB 充電器**（給 ESP32 供電用）
-   - 手機充電器即可，1A 以上
+2. **5V USB Charger** (for powering ESP32)
+   - Any phone charger works, 1A or higher
 
 ---
 
-*建立日期：2026-05-20*
+*Created: 2026-05-20*
