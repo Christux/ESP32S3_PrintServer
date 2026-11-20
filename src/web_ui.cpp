@@ -250,9 +250,9 @@ String WebUI::_generatePage() {
         <p>4. Protocol: <b>HP Jetdirect - Socket</b></p>
         <p>5. Address: <b><span id="setup-addr">—</span></b></p>
         <p>6. Queue: leave empty</p>
-        <p>7. Name: <b>Brother HL-2030 WiFi</b></p>
-        <p>8. Use/Driver: <b>Select Software</b> &rarr; search <b>Brother HL-2030</b></p>
-        <p style="margin-top:8px; color:#fde68a;">If "Brother HL-2030" is not listed, download the driver from Brother's website first.</p>
+        <p>7. Name: <b>Epson EPL-5900 WiFi</b></p>
+        <p>8. Use/Driver: <b>Select Software</b> &rarr; search <b>Epson EPL-5900</b> or <b>Epson EPL-5900 - CUPS+Gutenprint</b></p>
+        <p style="margin-top:8px; color:#fde68a;">A l'impression, CUPS doit envoyer les donnees PCL/EPL sans modifier le contenu.</p>
       </div>
     </div>
 

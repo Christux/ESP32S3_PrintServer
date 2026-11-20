@@ -93,7 +93,14 @@ bool UsbPrinter::_openDevice(uint8_t devAddr) {
   }
 
   // Use VID/PID for identification (string descriptors require additional control transfer)
-  if (devDesc->idVendor == 0x04F9) {
+  if (devDesc->idVendor == 0x04B8) {
+    _manufacturer = "Epson";
+    if (devDesc->idProduct == 0x0005) {
+      _product = "EPL-5900";
+    } else {
+      _product = "Epson Printer";
+    }
+  } else if (devDesc->idVendor == 0x04F9) {
     _manufacturer = "Brother";
     if (devDesc->idProduct == 0x0027) {
       _product = "HL-2030 series";

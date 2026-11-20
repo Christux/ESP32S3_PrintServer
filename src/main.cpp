@@ -1,6 +1,6 @@
 // ============================================================
 //  ESP32-S3 WiFi Print Server
-//  Print from Mac to Brother HL-2030 over WiFi
+//  Print from Mac, Windows or Linux to Epson EPL-5900 over WiFi
 //
 //  Hardware: ESP32-S3-WROOM-1-N8R8 (8MB Flash / 8MB PSRAM)
 //  Architecture: ESP32-S3 USB Host → Printer
@@ -120,7 +120,7 @@ void setup() {
   Serial.println();
   Serial.println("╔══════════════════════════════════════╗");
   Serial.println("║   ESP32-S3 WiFi Print Server v1.0   ║");
-  Serial.println("║   Brother HL-2030                    ║");
+  Serial.println("║   Epson EPL-5900                     ║");
   Serial.println("╚══════════════════════════════════════╝");
   Serial.println();
 

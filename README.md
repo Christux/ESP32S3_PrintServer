@@ -22,7 +22,15 @@ This project turns an **ESP32-S3** into a transparent WiFi-to-USB print bridge. 
 [Computer] ~~~WiFi~~~ [ESP32-S3] ---USB--- [Printer]
 ```
 
-Originally built for the **Brother HL-2030**, but should work with any USB printer that supports standard USB Printer Class (most do).
+Originally built for the **Brother HL-2030**, now adapted for the **Epson EPL-5900**. It should work with any USB printer that supports the standard USB Printer Class.
+
+## Epson EPL-5900 Configuration
+
+- USB identity: Epson Seiko Corp. — VID `04b8`, PID `0005`
+- Network service: raw socket on port `9100`
+- mDNS hostname: `epl5900.local`
+- Recommended macOS/Linux/CUPS driver: Epson EPL-5900 with Gutenprint/CUPS+Gutenprint
+- The ESP32 forwards the complete print stream unchanged; PCL/EPL/PostScript conversion is handled by the computer printer driver.
 
 ## Features
 
