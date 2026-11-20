@@ -174,7 +174,12 @@ void setup() {
   Serial.println();
 
   // 6. Start watchdog timer
-  esp_task_wdt_init(WDT_TIMEOUT_SEC * 1000, true);
+  esp_task_wdt_config_t wdtConfig = {
+    .timeout_ms = WDT_TIMEOUT_SEC * 1000,
+    .idle_core_mask = (1 << CONFIG_FREERTOS_NUMBER_OF_CORES) - 1,
+    .trigger_panic = true
+  };
+  esp_task_wdt_init(&wdtConfig);
   esp_task_wdt_add(NULL);
 
   // Done
