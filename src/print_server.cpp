@@ -1,3 +1,4 @@
+#include "config.h"
 #include "print_server.h"
 
 PrintServer::PrintServer(UsbPrinter& printer)
