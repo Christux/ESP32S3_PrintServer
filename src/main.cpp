@@ -29,6 +29,7 @@ WiFiManager  wifiMgr;
 PrintServer  printSvr(usbPrinter);
 WebUI        webUI(wifiMgr, usbPrinter, printSvr);
 CRGB         statusLED[1];
+constexpr unsigned long PRINTING_LED_MIN_DURATION_MS = 10000;
 
 // --- USB Host Background Task ---
 TaskHandle_t usbTaskHandle = NULL;
@@ -61,6 +62,8 @@ void setupMDNS() {
 }
 
 // --- Setup OTA ---
+void setLED(int mode);
+
 void setupOTA() {
   ArduinoOTA.setHostname(OTA_HOSTNAME);
 
@@ -71,11 +74,13 @@ void setupOTA() {
   ArduinoOTA.onStart([]() {
     String type = (ArduinoOTA.getCommand() == U_FLASH)
                   ? "sketch" : "filesystem";
+    setLED(LED_OTA);
     Serial.printf("[OTA] Starting %s update\n", type.c_str());
   });
 
   ArduinoOTA.onEnd([]() {
     Serial.println("\n[OTA] Update complete!");
+    setLED(wifiMgr.isConnected() ? LED_WIFI_OK : LED_ERROR);
   });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
@@ -95,6 +100,7 @@ void setupOTA() {
       case OTA_RECEIVE_ERROR: Serial.println("Receive failed"); break;
       case OTA_END_ERROR:     Serial.println("End failed"); break;
     }
+    setLED(wifiMgr.isConnected() ? LED_WIFI_OK : LED_ERROR);
   });
 
   ArduinoOTA.begin();
@@ -110,6 +116,9 @@ void setLED(int mode) {
     case LED_PRINTING:
       statusLED[0] = CRGB::Blue;
       break;
+    case LED_OTA:
+      statusLED[0] = CRGB::Purple;
+      break;
     case LED_ERROR:
       statusLED[0] = CRGB::Red;
       break;
@@ -118,6 +127,22 @@ void setLED(int mode) {
       break;
   }
   FastLED.show();
+}
+
+void handle_led() {
+  static bool printingLEDActive = false;
+  static unsigned long printingLEDStartedAt = 0;
+  const bool isPrinting = printSvr.getCurrentJob().active;
+
+  if (isPrinting && !printingLEDActive) {
+    setLED(LED_PRINTING);
+    printingLEDActive = true;
+    printingLEDStartedAt = millis();
+  } else if (printingLEDActive && !isPrinting &&
+             millis() - printingLEDStartedAt >= PRINTING_LED_MIN_DURATION_MS) {
+    setLED(wifiMgr.isConnected() ? LED_WIFI_OK : LED_ERROR);
+    printingLEDActive = false;
+  }
 }
 
 // ============================================================
@@ -251,23 +276,7 @@ void loop() {
     ArduinoOTA.handle();
   }
 
-  // LED blink (during printing)
-  static unsigned long lastBlink = 0;
-  static bool ledOn = false;
-  static bool wasPrinting = false;
-  if (printSvr.getCurrentJob().active) {
-    wasPrinting = true;
-    if (millis() - lastBlink > 200) {
-      lastBlink = millis();
-      ledOn = !ledOn;
-      statusLED[0] = ledOn ? CRGB::Blue : CRGB::Black;
-      FastLED.show();
-    }
-  } else if (wasPrinting) {
-    setLED(wifiMgr.isConnected() ? LED_WIFI_OK : LED_ERROR);
-    wasPrinting = false;
-    ledOn = false;
-  }
+  handle_led();
 
   // Short delay to avoid CPU spinning at full speed
   delay(1);

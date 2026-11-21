@@ -32,6 +32,7 @@
 #define LED_WIFI_OK       1       // WiFi connected
 #define LED_PRINTING      2       // Printing
 #define LED_ERROR         3       // Error
+#define LED_OTA           4       // OTA update
 
 // --- OTA Update ---
 #define OTA_HOSTNAME      "printserver"
