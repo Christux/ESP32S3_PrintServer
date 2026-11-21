@@ -12,6 +12,7 @@
 // ============================================================
 
 #include <WiFi.h>
+#include <FastLED.h>
 #include <ESPmDNS.h>
 #include <ArduinoOTA.h>
 #include <esp_task_wdt.h>
@@ -27,6 +28,7 @@ UsbPrinter   usbPrinter;
 WiFiManager  wifiMgr;
 PrintServer  printSvr(usbPrinter);
 WebUI        webUI(wifiMgr, usbPrinter, printSvr);
+CRGB         statusLED[1];
 
 // --- USB Host Background Task ---
 TaskHandle_t usbTaskHandle = NULL;
@@ -103,15 +105,19 @@ void setupOTA() {
 void setLED(int mode) {
   switch (mode) {
     case LED_WIFI_OK:
-      digitalWrite(LED_PIN, HIGH);
+      statusLED[0] = CRGB::Green;
       break;
     case LED_PRINTING:
-      // Blink effect handled in loop
+      statusLED[0] = CRGB::Blue;
       break;
     case LED_ERROR:
-      digitalWrite(LED_PIN, LOW);
+      statusLED[0] = CRGB::Red;
+      break;
+    default:
+      statusLED[0] = CRGB::Black;
       break;
   }
+  FastLED.show();
 }
 
 // ============================================================
@@ -129,9 +135,10 @@ void setup() {
   Serial.println("╚══════════════════════════════════════╝");
   Serial.println();
 
-  // LED
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);
+  // RGB status LED
+  FastLED.addLeds<WS2812B, LED_PIN, GRB>(statusLED, 1);
+  FastLED.setBrightness(16);
+  FastLED.clear(true);
 
   // Display memory info
   Serial.printf("[SYS] Free Heap:  %d KB\n", ESP.getFreeHeap() / 1024);
@@ -246,11 +253,20 @@ void loop() {
 
   // LED blink (during printing)
   static unsigned long lastBlink = 0;
+  static bool ledOn = false;
+  static bool wasPrinting = false;
   if (printSvr.getCurrentJob().active) {
+    wasPrinting = true;
     if (millis() - lastBlink > 200) {
       lastBlink = millis();
-      digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+      ledOn = !ledOn;
+      statusLED[0] = ledOn ? CRGB::Blue : CRGB::Black;
+      FastLED.show();
     }
+  } else if (wasPrinting) {
+    setLED(wifiMgr.isConnected() ? LED_WIFI_OK : LED_ERROR);
+    wasPrinting = false;
+    ledOn = false;
   }
 
   // Short delay to avoid CPU spinning at full speed

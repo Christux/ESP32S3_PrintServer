@@ -28,7 +28,7 @@
 #define PRINT_BUFFER_SIZE         (512 * 1024)  // 512KB print buffer (in PSRAM)
 
 // --- Status LED (optional) ---
-#define LED_PIN           38       // On-board LED (adjust for your board)
+#define LED_PIN           48       // On-board WS2812 RGB LED
 #define LED_WIFI_OK       1       // WiFi connected
 #define LED_PRINTING      2       // Printing
 #define LED_ERROR         3       // Error
