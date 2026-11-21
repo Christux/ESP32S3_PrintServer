@@ -16,7 +16,7 @@
 #define USB_PRINTER_GET_PORT_STATUS 0x01
 #define USB_PRINTER_SOFT_RESET     0x02
 
-// Printer state
+/** State of the USB host printer interface. */
 enum PrinterState {
   PRINTER_DISCONNECTED,
   PRINTER_CONNECTED,
@@ -25,30 +25,54 @@ enum PrinterState {
   PRINTER_ERROR
 };
 
+/** Manages USB host discovery and bulk data transfer to a printer. */
 class UsbPrinter {
 public:
+  /** Constructs a disconnected USB printer interface. */
   UsbPrinter();
 
-  // Initialize USB Host
+  /**
+   * Initializes the ESP32 USB host library and printer event client.
+   *
+   * @return true if USB host initialization succeeds, false otherwise.
+   */
   bool begin();
 
-  // Main loop processing (must be called continuously in loop or task)
+  /** Processes USB host events. Call continuously from loop() or task(). */
   void task();
 
-  // Send data to printer
+  /**
+   * Sends print data through the printer's bulk OUT endpoint.
+   *
+   * @param data Pointer to the bytes to send.
+   * @param length Number of bytes in data.
+   * @return Number of bytes sent, or a negative value on transfer failure.
+   */
   int sendData(const uint8_t* data, size_t length);
 
-  // Get printer state
+  /** Returns the current printer state. */
   PrinterState getState() const { return _state; }
+
+  /** Reports whether a USB printer device is connected. */
   bool isConnected() const { return _state >= PRINTER_CONNECTED; }
+
+  /** Reports whether the printer is ready to receive data. */
   bool isReady() const { return _state == PRINTER_READY; }
 
-  // Get printer info
+  /** Returns the printer IEEE 1284 device ID. */
   String getDeviceId() const { return _deviceId; }
+
+  /** Returns the detected printer manufacturer. */
   String getManufacturer() const { return _manufacturer; }
+
+  /** Returns the detected printer product name. */
   String getProduct() const { return _product; }
 
-  // Software reset
+  /**
+   * Sends the USB Printer Class soft-reset control request.
+   *
+   * @return true if the reset request succeeds, false otherwise.
+   */
   bool softReset();
 
 private:
@@ -65,13 +89,25 @@ private:
   uint16_t _epOutMPS;  // Bulk OUT max packet size
   uint8_t _ifaceNum;   // Interface number
 
-  // Internal methods
+  /** Receives USB host client events and forwards them to this instance. */
   static void _clientEventCallback(const usb_host_client_event_msg_t* eventMsg, void* arg);
+
+  /** Handles new-device and disconnected-device events. */
   void _handleClientEvent(const usb_host_client_event_msg_t* eventMsg);
+
+  /** Opens a detected USB device and initializes its printer interface. */
   bool _openDevice(uint8_t devAddr);
+
+  /** Finds the printer interface and its bulk endpoints. */
   bool _findPrinterInterface();
+
+  /** Claims the detected printer interface for exclusive use. */
   bool _claimInterface();
+
+  /** Releases resources and marks the printer disconnected. */
   void _closeDevice();
+
+  /** Requests and stores the printer IEEE 1284 device ID. */
   bool _getDeviceId();
 };
 

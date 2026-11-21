@@ -3,8 +3,8 @@
 
 // ============================================================
 // ESP32-S3 WiFi Print Server — Configuration
-// Compatible printer: Brother HL-2030
-// Board: ESP32-S3-WROOM-1-N8R8 (8MB Flash / 8MB PSRAM)
+// Compatible printer: Epson EPL-5900
+// Board: ESP32-S3-N16R8 (16MB Flash / 8MB PSRAM)
 // ============================================================
 
 // --- WiFi Default Settings ---
@@ -17,10 +17,10 @@
 #define AP_PASSWORD   "12345678"
 
 // --- Print Server Settings ---
-#define PRINTER_NAME       "Brother_HL2030_WiFi"
+#define PRINTER_NAME       "Epson_EPL5900_WiFi"
 #define RAW_SOCKET_PORT    9100    // JetDirect/AppSocket protocol port
 #define WEB_SERVER_PORT    80      // Web management UI port
-#define MDNS_HOSTNAME      "hl2030"  // Accessible via hl2030.local
+#define MDNS_HOSTNAME      "epl5900"  // Accessible via epl5900.local
 
 // --- USB Host Settings ---
 #define USB_HOST_TASK_PRIORITY    5
@@ -28,10 +28,11 @@
 #define PRINT_BUFFER_SIZE         (512 * 1024)  // 512KB print buffer (in PSRAM)
 
 // --- Status LED (optional) ---
-#define LED_PIN           38       // On-board LED (adjust for your board)
+#define LED_PIN           48       // On-board WS2812 RGB LED
 #define LED_WIFI_OK       1       // WiFi connected
 #define LED_PRINTING      2       // Printing
 #define LED_ERROR         3       // Error
+#define LED_OTA           4       // OTA update
 
 // --- OTA Update ---
 #define OTA_HOSTNAME      "printserver"

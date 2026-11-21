@@ -1,8 +1,8 @@
 // ============================================================
 //  ESP32-S3 WiFi Print Server
-//  Print from Mac to Brother HL-2030 over WiFi
+//  Print from Mac, Windows or Linux to Epson EPL-5900 over WiFi
 //
-//  Hardware: ESP32-S3-WROOM-1-N8R8 (8MB Flash / 8MB PSRAM)
+//  Hardware: ESP32-S3-N16R8 (16MB Flash / 8MB PSRAM)
 //  Architecture: ESP32-S3 USB Host → Printer
 //                WiFi Raw Socket (Port 9100) ← Mac
 //                mDNS auto-discovery + Web UI + OTA
@@ -12,6 +12,7 @@
 // ============================================================
 
 #include <WiFi.h>
+#include <FastLED.h>
 #include <ESPmDNS.h>
 #include <ArduinoOTA.h>
 #include <esp_task_wdt.h>
@@ -27,10 +28,18 @@ UsbPrinter   usbPrinter;
 WiFiManager  wifiMgr;
 PrintServer  printSvr(usbPrinter);
 WebUI        webUI(wifiMgr, usbPrinter, printSvr);
+CRGB         statusLED[1];
+constexpr unsigned long PRINTING_LED_MIN_DURATION_MS = 10000;
 
 // --- USB Host Background Task ---
 TaskHandle_t usbTaskHandle = NULL;
+bool networkServicesStarted = false;
 
+/**
+ * Runs USB host event processing on a dedicated background task.
+ *
+ * @param param Unused task argument required by the FreeRTOS task signature.
+ */
 void usbHostTask(void* param) {
   Serial.println("[Task] USB Host task started");
 
@@ -41,6 +50,7 @@ void usbHostTask(void* param) {
 }
 
 // --- Setup mDNS ---
+/** Registers the raw print socket and web management services with mDNS. */
 void setupMDNS() {
   if (MDNS.begin(MDNS_HOSTNAME)) {
     // Advertise Raw Socket print service
@@ -58,6 +68,14 @@ void setupMDNS() {
 }
 
 // --- Setup OTA ---
+/**
+ * Sets the LED indication for a status mode.
+ *
+ * @param mode One of the LED status constants.
+ */
+void setLED(int mode);
+
+/** Configures and starts Arduino OTA updates for the application. */
 void setupOTA() {
   ArduinoOTA.setHostname(OTA_HOSTNAME);
 
@@ -68,15 +86,21 @@ void setupOTA() {
   ArduinoOTA.onStart([]() {
     String type = (ArduinoOTA.getCommand() == U_FLASH)
                   ? "sketch" : "filesystem";
+    setLED(LED_OTA);
     Serial.printf("[OTA] Starting %s update\n", type.c_str());
   });
 
   ArduinoOTA.onEnd([]() {
     Serial.println("\n[OTA] Update complete!");
+    setLED(wifiMgr.isConnected() ? LED_WIFI_OK : LED_ERROR);
   });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("[OTA] Progress: %u%%\r", (progress / (total / 100)));
+    // ArduinoOTA handles the whole transfer synchronously inside loop().
+    esp_task_wdt_reset();
+    if (total > 0) {
+      Serial.printf("[OTA] Progress: %u%%\r", (progress * 100) / total);
+    }
   });
 
   ArduinoOTA.onError([](ota_error_t error) {
@@ -88,6 +112,7 @@ void setupOTA() {
       case OTA_RECEIVE_ERROR: Serial.println("Receive failed"); break;
       case OTA_END_ERROR:     Serial.println("End failed"); break;
     }
+    setLED(wifiMgr.isConnected() ? LED_WIFI_OK : LED_ERROR);
   });
 
   ArduinoOTA.begin();
@@ -95,23 +120,53 @@ void setupOTA() {
 }
 
 // --- LED Status Indicator ---
+/**
+ * Updates the status LED to reflect the requested system mode.
+ *
+ * @param mode One of LED_WIFI_OK, LED_PRINTING, LED_OTA, or LED_ERROR.
+ */
 void setLED(int mode) {
   switch (mode) {
     case LED_WIFI_OK:
-      digitalWrite(LED_PIN, HIGH);
+      statusLED[0] = CRGB::Green;
       break;
     case LED_PRINTING:
-      // Blink effect handled in loop
+      statusLED[0] = CRGB::Blue;
+      break;
+    case LED_OTA:
+      statusLED[0] = CRGB::Purple;
       break;
     case LED_ERROR:
-      digitalWrite(LED_PIN, LOW);
+      statusLED[0] = CRGB::Red;
       break;
+    default:
+      statusLED[0] = CRGB::Black;
+      break;
+  }
+  FastLED.show();
+}
+
+/** Updates the printing indication while preserving its configured minimum duration. */
+void handle_led() {
+  static bool printingLEDActive = false;
+  static unsigned long printingLEDStartedAt = 0;
+  const bool isPrinting = printSvr.getCurrentJob().active;
+
+  if (isPrinting && !printingLEDActive) {
+    setLED(LED_PRINTING);
+    printingLEDActive = true;
+    printingLEDStartedAt = millis();
+  } else if (printingLEDActive && !isPrinting &&
+             millis() - printingLEDStartedAt >= PRINTING_LED_MIN_DURATION_MS) {
+    setLED(wifiMgr.isConnected() ? LED_WIFI_OK : LED_ERROR);
+    printingLEDActive = false;
   }
 }
 
 // ============================================================
 //  setup()
 // ============================================================
+/** Initializes hardware, network services, print services, watchdog, and status output. */
 void setup() {
   delay(1000);
   Serial.begin(460800);
@@ -120,13 +175,14 @@ void setup() {
   Serial.println();
   Serial.println("╔══════════════════════════════════════╗");
   Serial.println("║   ESP32-S3 WiFi Print Server v1.0   ║");
-  Serial.println("║   Brother HL-2030                    ║");
+  Serial.println("║   Epson EPL-5900                     ║");
   Serial.println("╚══════════════════════════════════════╝");
   Serial.println();
 
-  // LED
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);
+  // RGB status LED
+  FastLED.addLeds<WS2812B, LED_PIN, GRB>(statusLED, 1);
+  FastLED.setBrightness(16);
+  FastLED.clear(true);
 
   // Display memory info
   Serial.printf("[SYS] Free Heap:  %d KB\n", ESP.getFreeHeap() / 1024);
@@ -161,6 +217,7 @@ void setup() {
   if (wifiMgr.isConnected()) {
     setupMDNS();
     setupOTA();
+    networkServicesStarted = true;
   }
 
   // 4. Start print server
@@ -174,8 +231,26 @@ void setup() {
   Serial.println();
 
   // 6. Start watchdog timer
-  esp_task_wdt_init(WDT_TIMEOUT_SEC * 1000, true);
-  esp_task_wdt_add(NULL);
+  esp_task_wdt_config_t wdtConfig = {
+    .timeout_ms = WDT_TIMEOUT_SEC * 1000,
+    .idle_core_mask = (1 << CONFIG_FREERTOS_NUMBER_OF_CORES) - 1,
+    .trigger_panic = true
+  };
+  esp_err_t wdtStatus = esp_task_wdt_reconfigure(&wdtConfig);
+  if (wdtStatus == ESP_ERR_INVALID_STATE) {
+    wdtStatus = esp_task_wdt_init(&wdtConfig);
+  }
+  if (wdtStatus != ESP_OK) {
+    Serial.printf("[WDT] Configuration failed: %s\n", esp_err_to_name(wdtStatus));
+  } else {
+    wdtStatus = esp_task_wdt_add(NULL);
+    if (wdtStatus == ESP_ERR_INVALID_STATE) {
+      Serial.println("[WDT] loopTask is already subscribed");
+    } else if (wdtStatus != ESP_OK) {
+      Serial.printf("[WDT] Failed to subscribe loopTask: %s\n",
+                    esp_err_to_name(wdtStatus));
+    }
+  }
 
   // Done
   Serial.println("════════════════════════════════════════");
@@ -195,12 +270,20 @@ void setup() {
 // ============================================================
 //  loop()
 // ============================================================
+/** Runs ongoing WiFi, print, web, OTA, watchdog, and status processing. */
 void loop() {
   // Feed watchdog
   esp_task_wdt_reset();
 
   // WiFi management (auto-reconnect)
   wifiMgr.task();
+
+  // Start network services when WiFi is configured after booting in AP mode.
+  if (wifiMgr.isConnected() && !networkServicesStarted) {
+    setupMDNS();
+    setupOTA();
+    networkServicesStarted = true;
+  }
 
   // Print server
   printSvr.task();
@@ -213,14 +296,7 @@ void loop() {
     ArduinoOTA.handle();
   }
 
-  // LED blink (during printing)
-  static unsigned long lastBlink = 0;
-  if (printSvr.getCurrentJob().active) {
-    if (millis() - lastBlink > 200) {
-      lastBlink = millis();
-      digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    }
-  }
+  handle_led();
 
   // Short delay to avoid CPU spinning at full speed
   delay(1);

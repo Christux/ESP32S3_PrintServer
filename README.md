@@ -22,7 +22,15 @@ This project turns an **ESP32-S3** into a transparent WiFi-to-USB print bridge. 
 [Computer] ~~~WiFi~~~ [ESP32-S3] ---USB--- [Printer]
 ```
 
-Originally built for the **Brother HL-2030**, but should work with any USB printer that supports standard USB Printer Class (most do).
+Originally built for the **Brother HL-2030**, now adapted for the **Epson EPL-5900**. It should work with any USB printer that supports the standard USB Printer Class.
+
+## Epson EPL-5900 Configuration
+
+- USB identity: Epson Seiko Corp. — VID `04b8`, PID `0005`
+- Network service: raw socket on port `9100`
+- mDNS hostname: `epl5900.local`
+- Recommended macOS/Linux/CUPS driver: Epson EPL-5900 with Gutenprint/CUPS+Gutenprint
+- The ESP32 forwards the complete print stream unchanged; PCL/EPL/PostScript conversion is handled by the computer printer driver.
 
 ## Features
 
@@ -88,6 +96,23 @@ Download [Arduino IDE 2.x](https://www.arduino.cc/en/software) and install the E
 2. Open `ESP32S3_PrintServer.ino` in Arduino IDE
 3. Click **Upload**
 4. If upload fails, hold **BOOT**, press **RST**, release RST, wait 2 seconds, release BOOT
+
+### PlatformIO and OTA
+
+The PlatformIO configuration targets the N16R8: 16MB flash, OPI PSRAM, and a
+16MB partition table with two OTA application slots. The first upload must be
+made over serial using the `esp32-s3` environment. After WiFi has been
+configured and the device is reachable on the same network, upload subsequent
+firmware with:
+
+```sh
+pio run -e esp32-s3-ota -t upload
+```
+
+The OTA environment connects to `printserver.local`. If you change
+`OTA_HOSTNAME` in `src/config.h`, update `upload_port` in `platformio.ini` to
+match. Set a non-empty `OTA_PASSWORD` in `src/config.h` before using OTA on an
+untrusted network.
 
 ## First-Time Setup
 
