@@ -35,6 +35,11 @@ constexpr unsigned long PRINTING_LED_MIN_DURATION_MS = 10000;
 TaskHandle_t usbTaskHandle = NULL;
 bool networkServicesStarted = false;
 
+/**
+ * Runs USB host event processing on a dedicated background task.
+ *
+ * @param param Unused task argument required by the FreeRTOS task signature.
+ */
 void usbHostTask(void* param) {
   Serial.println("[Task] USB Host task started");
 
@@ -45,6 +50,7 @@ void usbHostTask(void* param) {
 }
 
 // --- Setup mDNS ---
+/** Registers the raw print socket and web management services with mDNS. */
 void setupMDNS() {
   if (MDNS.begin(MDNS_HOSTNAME)) {
     // Advertise Raw Socket print service
@@ -62,8 +68,14 @@ void setupMDNS() {
 }
 
 // --- Setup OTA ---
+/**
+ * Sets the LED indication for a status mode.
+ *
+ * @param mode One of the LED status constants.
+ */
 void setLED(int mode);
 
+/** Configures and starts Arduino OTA updates for the application. */
 void setupOTA() {
   ArduinoOTA.setHostname(OTA_HOSTNAME);
 
@@ -108,6 +120,11 @@ void setupOTA() {
 }
 
 // --- LED Status Indicator ---
+/**
+ * Updates the status LED to reflect the requested system mode.
+ *
+ * @param mode One of LED_WIFI_OK, LED_PRINTING, LED_OTA, or LED_ERROR.
+ */
 void setLED(int mode) {
   switch (mode) {
     case LED_WIFI_OK:
@@ -129,6 +146,7 @@ void setLED(int mode) {
   FastLED.show();
 }
 
+/** Updates the printing indication while preserving its configured minimum duration. */
 void handle_led() {
   static bool printingLEDActive = false;
   static unsigned long printingLEDStartedAt = 0;
@@ -148,6 +166,7 @@ void handle_led() {
 // ============================================================
 //  setup()
 // ============================================================
+/** Initializes hardware, network services, print services, watchdog, and status output. */
 void setup() {
   delay(1000);
   Serial.begin(460800);
@@ -251,6 +270,7 @@ void setup() {
 // ============================================================
 //  loop()
 // ============================================================
+/** Runs ongoing WiFi, print, web, OTA, watchdog, and status processing. */
 void loop() {
   // Feed watchdog
   esp_task_wdt_reset();
