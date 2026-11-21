@@ -4,7 +4,7 @@
 // ============================================================
 // ESP32-S3 WiFi Print Server — Configuration
 // Compatible printer: Epson EPL-5900
-// Board: ESP32-S3-WROOM-1-N8R8 (8MB Flash / 8MB PSRAM)
+// Board: ESP32-S3-N16R8 (16MB Flash / 8MB PSRAM)
 // ============================================================
 
 // --- WiFi Default Settings ---

@@ -2,7 +2,7 @@
 //  ESP32-S3 WiFi Print Server
 //  Print from Mac, Windows or Linux to Epson EPL-5900 over WiFi
 //
-//  Hardware: ESP32-S3-WROOM-1-N8R8 (8MB Flash / 8MB PSRAM)
+//  Hardware: ESP32-S3-N16R8 (16MB Flash / 8MB PSRAM)
 //  Architecture: ESP32-S3 USB Host → Printer
 //                WiFi Raw Socket (Port 9100) ← Mac
 //                mDNS auto-discovery + Web UI + OTA
@@ -30,6 +30,7 @@ WebUI        webUI(wifiMgr, usbPrinter, printSvr);
 
 // --- USB Host Background Task ---
 TaskHandle_t usbTaskHandle = NULL;
+bool networkServicesStarted = false;
 
 void usbHostTask(void* param) {
   Serial.println("[Task] USB Host task started");
@@ -76,7 +77,11 @@ void setupOTA() {
   });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("[OTA] Progress: %u%%\r", (progress / (total / 100)));
+    // ArduinoOTA handles the whole transfer synchronously inside loop().
+    esp_task_wdt_reset();
+    if (total > 0) {
+      Serial.printf("[OTA] Progress: %u%%\r", (progress * 100) / total);
+    }
   });
 
   ArduinoOTA.onError([](ota_error_t error) {
@@ -161,6 +166,7 @@ void setup() {
   if (wifiMgr.isConnected()) {
     setupMDNS();
     setupOTA();
+    networkServicesStarted = true;
   }
 
   // 4. Start print server
@@ -179,8 +185,21 @@ void setup() {
     .idle_core_mask = (1 << CONFIG_FREERTOS_NUMBER_OF_CORES) - 1,
     .trigger_panic = true
   };
-  esp_task_wdt_init(&wdtConfig);
-  esp_task_wdt_add(NULL);
+  esp_err_t wdtStatus = esp_task_wdt_reconfigure(&wdtConfig);
+  if (wdtStatus == ESP_ERR_INVALID_STATE) {
+    wdtStatus = esp_task_wdt_init(&wdtConfig);
+  }
+  if (wdtStatus != ESP_OK) {
+    Serial.printf("[WDT] Configuration failed: %s\n", esp_err_to_name(wdtStatus));
+  } else {
+    wdtStatus = esp_task_wdt_add(NULL);
+    if (wdtStatus == ESP_ERR_INVALID_STATE) {
+      Serial.println("[WDT] loopTask is already subscribed");
+    } else if (wdtStatus != ESP_OK) {
+      Serial.printf("[WDT] Failed to subscribe loopTask: %s\n",
+                    esp_err_to_name(wdtStatus));
+    }
+  }
 
   // Done
   Serial.println("════════════════════════════════════════");
@@ -206,6 +225,13 @@ void loop() {
 
   // WiFi management (auto-reconnect)
   wifiMgr.task();
+
+  // Start network services when WiFi is configured after booting in AP mode.
+  if (wifiMgr.isConnected() && !networkServicesStarted) {
+    setupMDNS();
+    setupOTA();
+    networkServicesStarted = true;
+  }
 
   // Print server
   printSvr.task();

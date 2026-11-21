@@ -8,7 +8,7 @@
 
 | Item | Specification | Notes |
 |------|---------------|-------|
-| Dev board | ESP32-S3-WROOM-1-N8R8 (dual Type-C) | You have this |
+| Dev board | ESP32-S3-N16R8 (dual Type-C) | 16MB Flash, 8MB PSRAM |
 | Printer | Brother HL-2030 | USB connection |
 | USB OTG adapter | Type-C male → USB-A female | **Key component** |
 | USB cable | USB-A male → USB-B male | Printer's original cable |
@@ -57,8 +57,8 @@ Set in the **Tools** menu:
 | USB CDC On Boot | Disabled |
 | USB Mode | USB-OTG (TinyUSB) |
 | PSRAM | OPI PSRAM |
-| Flash Size | 8MB |
-| Partition Scheme | Huge App (3MB APP/1.6MB FATFS) |
+| Flash Size | 16MB |
+| Partition Scheme | OTA-capable partition scheme with two app slots |
 | Upload Mode | UART0 / Hardware CDC |
 | Port | Select your COM port |
 

@@ -97,6 +97,23 @@ Download [Arduino IDE 2.x](https://www.arduino.cc/en/software) and install the E
 3. Click **Upload**
 4. If upload fails, hold **BOOT**, press **RST**, release RST, wait 2 seconds, release BOOT
 
+### PlatformIO and OTA
+
+The PlatformIO configuration targets the N16R8: 16MB flash, OPI PSRAM, and a
+16MB partition table with two OTA application slots. The first upload must be
+made over serial using the `esp32-s3` environment. After WiFi has been
+configured and the device is reachable on the same network, upload subsequent
+firmware with:
+
+```sh
+pio run -e esp32-s3-ota -t upload
+```
+
+The OTA environment connects to `printserver.local`. If you change
+`OTA_HOSTNAME` in `src/config.h`, update `upload_port` in `platformio.ini` to
+match. Set a non-empty `OTA_PASSWORD` in `src/config.h` before using OTA on an
+untrusted network.
+
 ## First-Time Setup
 
 ### 1. Connect Printer
