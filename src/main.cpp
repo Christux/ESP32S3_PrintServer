@@ -181,7 +181,7 @@ void setup() {
 
   // RGB status LED
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(statusLED, 1);
-  FastLED.setBrightness(16);
+  FastLED.setBrightness(LED_BRIGHTNESS);
   FastLED.clear(true);
 
   // Display memory info
