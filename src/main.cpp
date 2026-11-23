@@ -30,6 +30,7 @@ PrintServer  printSvr(usbPrinter);
 WebUI        webUI(wifiMgr, usbPrinter, printSvr);
 CRGB         statusLED[1];
 constexpr unsigned long PRINTING_LED_MIN_DURATION_MS = 10000;
+bool otaInProgress = false;
 
 // --- USB Host Background Task ---
 TaskHandle_t usbTaskHandle = NULL;
@@ -74,6 +75,7 @@ void setupMDNS() {
  * @param mode One of the LED status constants.
  */
 void setLED(int mode);
+void handle_led();
 
 /** Configures and starts Arduino OTA updates for the application. */
 void setupOTA() {
@@ -86,13 +88,15 @@ void setupOTA() {
   ArduinoOTA.onStart([]() {
     String type = (ArduinoOTA.getCommand() == U_FLASH)
                   ? "sketch" : "filesystem";
+    otaInProgress = true;
     setLED(LED_OTA);
     Serial.printf("[OTA] Starting %s update\n", type.c_str());
   });
 
   ArduinoOTA.onEnd([]() {
     Serial.println("\n[OTA] Update complete!");
-    setLED(wifiMgr.isConnected() ? LED_WIFI_OK : LED_ERROR);
+    otaInProgress = false;
+    handle_led();
   });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
@@ -112,7 +116,8 @@ void setupOTA() {
       case OTA_RECEIVE_ERROR: Serial.println("Receive failed"); break;
       case OTA_END_ERROR:     Serial.println("End failed"); break;
     }
-    setLED(wifiMgr.isConnected() ? LED_WIFI_OK : LED_ERROR);
+    otaInProgress = false;
+    handle_led();
   });
 
   ArduinoOTA.begin();
@@ -123,9 +128,12 @@ void setupOTA() {
 /**
  * Updates the status LED to reflect the requested system mode.
  *
- * @param mode One of LED_WIFI_OK, LED_PRINTING, LED_OTA, or LED_ERROR.
+ * @param mode One of the LED status constants defined in config.h.
  */
 void setLED(int mode) {
+  static int currentMode = -1;
+  if (mode == currentMode) return;
+
   switch (mode) {
     case LED_WIFI_OK:
       statusLED[0] = CRGB::Green;
@@ -139,11 +147,15 @@ void setLED(int mode) {
     case LED_ERROR:
       statusLED[0] = CRGB::Red;
       break;
+    case LED_WAITING:
+      statusLED[0] = CRGB::Orange;
+      break;
     default:
       statusLED[0] = CRGB::Black;
       break;
   }
   FastLED.show();
+  currentMode = mode;
 }
 
 /** Updates the printing indication while preserving its configured minimum duration. */
@@ -151,6 +163,15 @@ void handle_led() {
   static bool printingLEDActive = false;
   static unsigned long printingLEDStartedAt = 0;
   const bool isPrinting = printSvr.getCurrentJob().active;
+  const bool systemReady = wifiMgr.isConnected() && usbPrinter.isReady();
+
+  if (otaInProgress) return;
+
+  if (!systemReady) {
+    printingLEDActive = false;
+    setLED(LED_WAITING);
+    return;
+  }
 
   if (isPrinting && !printingLEDActive) {
     setLED(LED_PRINTING);
@@ -158,9 +179,10 @@ void handle_led() {
     printingLEDStartedAt = millis();
   } else if (printingLEDActive && !isPrinting &&
              millis() - printingLEDStartedAt >= PRINTING_LED_MIN_DURATION_MS) {
-    setLED(wifiMgr.isConnected() ? LED_WIFI_OK : LED_ERROR);
     printingLEDActive = false;
   }
+
+  if (!printingLEDActive) setLED(LED_WIFI_OK);
 }
 
 // ============================================================
@@ -181,8 +203,9 @@ void setup() {
 
   // RGB status LED
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(statusLED, 1);
-  FastLED.setBrightness(16);
+  FastLED.setBrightness(LED_BRIGHTNESS);
   FastLED.clear(true);
+  setLED(LED_WAITING);
 
   // Display memory info
   Serial.printf("[SYS] Free Heap:  %d KB\n", ESP.getFreeHeap() / 1024);
@@ -264,7 +287,7 @@ void setup() {
   }
   Serial.println("════════════════════════════════════════");
 
-  setLED(wifiMgr.isConnected() ? LED_WIFI_OK : LED_ERROR);
+  setLED(LED_WAITING);
 }
 
 // ============================================================
