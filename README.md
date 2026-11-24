@@ -14,6 +14,12 @@ Turn a USB-only printer into a wireless network printer using an ESP32-S3 dev bo
 
 <p align="center"><i>ESP32-S3 + Brother HL-2030 = WiFi Printer. Hello, World!</i></p>
 
+<p align="center">
+  <img src="images/setup_epl5900.jpg" width="600" alt="ESP32-S3 connected to EPSON EPL5900">
+</p>
+
+<p align="center"><i>ESP32-S3 with RGB LED that indicates the print server state, here on EPSON EPL5900</i></p>
+
 ## What It Does
 
 This project turns an **ESP32-S3** into a transparent WiFi-to-USB print bridge. Your computer sends print data over WiFi, and the ESP32 forwards it to the printer via USB Host — no Raspberry Pi needed, just a $10 microcontroller.
@@ -39,9 +45,25 @@ Originally built for the **Brother HL-2030**, now adapted for the **Epson EPL-59
 - **Auto WiFi Setup** — Boots into AP mode on first run; connect and configure via browser
 - **mDNS Discovery** — Access via `hl2030.local` instead of memorizing IP addresses
 - **OTA Updates** — Update firmware wirelessly from Arduino IDE
+- **RGB Status LED** — Indicates WiFi/printer readiness, printing, and OTA activity
 - **PSRAM Buffer** — 512KB print buffer in PSRAM handles large print jobs
 - **Auto Reconnect** — Automatically reconnects to WiFi if connection drops
 - **Watchdog Timer** — Auto-recovers from crashes
+
+### RGB Status LED
+
+The on-board RGB LED (GPIO 48) indicates the print server state:
+
+| Color | Status |
+|-------|--------|
+| Orange | Starting up, WiFi disconnected, or printer not ready |
+| Green | WiFi connected and printer ready |
+| Blue | Printing; remains on for at least 10 seconds from the start of the job |
+| Purple | OTA update in progress |
+| Red | Error state |
+
+Brightness is set to 25% by default and can be adjusted with `LED_BRIGHTNESS`
+in `src/config.h`.
 
 ## Hardware Required
 
@@ -249,11 +271,13 @@ Edit `config.h` to customize:
 | `MDNS_HOSTNAME` | `hl2030` | mDNS hostname (access via `<name>.local`) |
 | `RAW_SOCKET_PORT` | `9100` | Print server port |
 | `PRINT_BUFFER_SIZE` | `512 * 1024` | Print buffer size (in PSRAM) |
-| `LED_PIN` | `38` | Status LED GPIO pin |
+| `LED_PIN` | `48` | On-board RGB status LED GPIO pin |
+| `LED_BRIGHTNESS` | `64` | LED brightness (0–255; 64 is about 25%) |
 | `OTA_PASSWORD` | `""` | OTA update password (empty = no password) |
 | `WDT_TIMEOUT_SEC` | `30` | Watchdog timeout in seconds |
 
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
-Adapted for platformio and translated from https://github.com/MAXXTANG/ESP32S3_PrintServer
+Adpated for EPL5900 printer from https://github.com/wxorx/ESP32S3_PrintServer
+Itself adapted for platformio and translated from https://github.com/MAXXTANG/ESP32S3_PrintServer
