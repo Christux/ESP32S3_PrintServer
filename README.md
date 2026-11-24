@@ -279,4 +279,5 @@ Edit `config.h` to customize:
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
-Adapted for platformio and translated from https://github.com/MAXXTANG/ESP32S3_PrintServer
+Adpated for EPL5900 printer from https://github.com/wxorx/ESP32S3_PrintServer
+Itself adapted for platformio and translated from https://github.com/MAXXTANG/ESP32S3_PrintServer
