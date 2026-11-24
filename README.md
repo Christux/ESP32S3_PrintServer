@@ -14,6 +14,12 @@ Turn a USB-only printer into a wireless network printer using an ESP32-S3 dev bo
 
 <p align="center"><i>ESP32-S3 + Brother HL-2030 = WiFi Printer. Hello, World!</i></p>
 
+<p align="center">
+  <img src="images/setup_epl5900.jpg" width="600" alt="ESP32-S3 connected to EPSON EPL5900">
+</p>
+
+<p align="center"><i>ESP32-S3 with RGB LED that indicates the print server state, here on EPSON EPL5900</i></p>
+
 ## What It Does
 
 This project turns an **ESP32-S3** into a transparent WiFi-to-USB print bridge. Your computer sends print data over WiFi, and the ESP32 forwards it to the printer via USB Host — no Raspberry Pi needed, just a $10 microcontroller.
